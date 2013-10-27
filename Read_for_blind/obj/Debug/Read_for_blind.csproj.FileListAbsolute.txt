@@ -1,0 +1,13 @@
+c:\users\anuj\documents\visual studio 2012\Projects\Read_for_blind\Read_for_blind\bin\Debug\Read_for_blind.exe.config
+c:\users\anuj\documents\visual studio 2012\Projects\Read_for_blind\Read_for_blind\bin\Debug\Read_for_blind.exe
+c:\users\anuj\documents\visual studio 2012\Projects\Read_for_blind\Read_for_blind\bin\Debug\Read_for_blind.pdb
+c:\users\anuj\documents\visual studio 2012\Projects\Read_for_blind\Read_for_blind\obj\Debug\Read_for_blind.csprojResolveAssemblyReference.cache
+c:\users\anuj\documents\visual studio 2012\Projects\Read_for_blind\Read_for_blind\obj\Debug\MainWindow.baml
+c:\users\anuj\documents\visual studio 2012\Projects\Read_for_blind\Read_for_blind\obj\Debug\MainWindow.g.cs
+c:\users\anuj\documents\visual studio 2012\Projects\Read_for_blind\Read_for_blind\obj\Debug\App.g.cs
+c:\users\anuj\documents\visual studio 2012\Projects\Read_for_blind\Read_for_blind\obj\Debug\Read_for_blind_MarkupCompile.cache
+c:\users\anuj\documents\visual studio 2012\Projects\Read_for_blind\Read_for_blind\obj\Debug\Read_for_blind.g.resources
+c:\users\anuj\documents\visual studio 2012\Projects\Read_for_blind\Read_for_blind\obj\Debug\Read_for_blind.Properties.Resources.resources
+c:\users\anuj\documents\visual studio 2012\Projects\Read_for_blind\Read_for_blind\obj\Debug\Read_for_blind.csproj.GenerateResource.Cache
+c:\users\anuj\documents\visual studio 2012\Projects\Read_for_blind\Read_for_blind\obj\Debug\Read_for_blind.exe
+c:\users\anuj\documents\visual studio 2012\Projects\Read_for_blind\Read_for_blind\obj\Debug\Read_for_blind.pdb
