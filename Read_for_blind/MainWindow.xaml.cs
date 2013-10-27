@@ -97,8 +97,8 @@ namespace Read_for_blind
             DirectionText[4] = "Top";
             DirectionText[5] = "Bottom";
             DirectionText[6] = "Right";
-
-            
+           
+           
             _cameraThread = new Thread(new ThreadStart(CaptureCameraCallback));
             _voiceThread = new Thread(new ThreadStart(voiceCallBack));
            _cameraThread.Start();
@@ -175,7 +175,6 @@ namespace Read_for_blind
             base.OnClosing(e);
         }
      
-      
         private void CaptureCameraCallback()
         {
 
@@ -224,10 +223,13 @@ namespace Read_for_blind
                  
                             Cv.Canny(gray, gray, 35, 35, ApertureSize.Size3);
                             gray.Smooth(gray, SmoothType.Blur, 3, 3);
-                          
+                           /*
+                            CvSeq<CvPoint> contours;
+                            
                             CvMemStorage _storage = new CvMemStorage();
-
-
+                            Cv.FindContours(gray, _storage, out contours, CvContour.SizeOf, ContourRetrieval.Tree, ContourChain.ApproxSimple);
+                            Cv.DrawContours(display, contours, CvColor.Blue, CvColor.Green, 2,2, LineType.AntiAlias);
+                            */
                             CvMemStorage storage = new CvMemStorage();
                             storage.Clear();
 
@@ -238,12 +240,14 @@ namespace Read_for_blind
                             int minT = 0;
 
                             // gray.HoughLines2(storage, HoughLinesMethod.Standard, Cv.PI / 180, 0, 0);
-                            CvSeq lines = gray.HoughLines2(storage, HoughLinesMethod.Probabilistic, 1, Math.PI / 180, 50, 50, 1);
+                            CvSeq lines = gray.HoughLines2(storage, HoughLinesMethod.Probabilistic, 1, Math.PI / 180, 50, 50, 10);
                             for (int i = 0; i < lines.Total; i++)
                             {
 
+                             
 
                                 CvLineSegmentPoint elem = lines.GetSeqElem<CvLineSegmentPoint>(i).Value;
+
                                 display.Line(elem.P1, elem.P2, CvColor.Navy, 2);
                                 
                                 if (elem.P1.X < HORI[0])
@@ -346,6 +350,10 @@ namespace Read_for_blind
 
                         }
                         catch (OpenCVException ) { }
+ #region Saving 
+                       
+#endregion
+
 
                         Bitmap bm = BitmapConverter.ToBitmap(display);
                         BitmapImage bitmapImage;
@@ -480,6 +488,29 @@ namespace Read_for_blind
             return DIRECTION;
         }
 
+        private CvPoint getIntersect(CvLineSegmentPoint line1,CvLineSegmentPoint line2)
+        {
+            CvPoint point=new CvPoint();
+            int x1 =line1.P1.X, y1 = line1.P1.Y, x2 = line1.P2.X, y2 = line1.P2.Y;  
+            int x3 =line2.P1.X, y3 = line2.P1.Y, x4 = line2.P2.X, y4 = line2.P2.Y;   
+            float d=0;
+
+            d = ((float)(x1 - x2) * (y3 - y4)) - ((y1 - y2) * (x3 - x4));
+            point.X =(int) (((x1*y2 - y1*x2) * (x3-x4) - (x1-x2) * (x3*y4 - y3*x4)) / d);  
+            point.Y = (int) (((x1*y2 - y1*x2) * (y3-y4) - (y1-y2) * (x3*y4 - y3*x4)) / d);
+            
+            if (point.X < Math.Min(x1, x2) - 10 || point.X > Math.Max(x1, x2) + 10 || point.Y < Math.Min(y1, y2) - 10 || point.Y > Math.Max(y1, y2) + 10)
+            {  
+                return new CvPoint(-1,-1);  
+           }
+            if (point.X < Math.Min(x3, x4) - 10 || point.X > Math.Max(x3, x4) + 10 || point.Y < Math.Min(y3, y4) - 10 || point.Y > Math.Max(y3, y4) + 10)
+            {  
+                return new CvPoint(-1,-1);  
+           } 
+            
+         return point;  
+   }  
+
         private void setupDebug(IplImage mainImage, int[] HORI, int[] VERTI)
         {
 #if DEBUG
@@ -508,7 +539,205 @@ namespace Read_for_blind
 
             return DirectionText[i];
         }
-    
+
+        private int setAutoRotation(String filePath)
+        {
+            CvMemStorage cornerStorage = new CvMemStorage();
+            IplImage orig = new IplImage(filePath);
+            IplImage gray = new IplImage(orig.Size, BitDepth.U8, 1);
+            Cv.Smooth(orig, orig, SmoothType.Gaussian, 3, 3);
+            orig.CvtColor(gray, ColorConversion.BgrToGray);
+            Cv.Canny(gray, gray, 25, 25, ApertureSize.Size3);
+
+
+            CvSeq cornerLines = gray.HoughLines2(cornerStorage, HoughLinesMethod.Probabilistic, 1, Math.PI / 180, 70, 30, 50);
+
+            int[] poly = new int[cornerLines.Total];
+            int curPoly = 0;
+            for (int k = 0; k < cornerLines.Total; k++)
+                poly[k] = -1;
+            List<List<CvPoint>> corners = new List<List<CvPoint>>();
+            #region Dividing into Groups
+            for (int i = 0; i < cornerLines.Total; i++)
+            {
+                CvLineSegmentPoint line1 = cornerLines.GetSeqElem<CvLineSegmentPoint>(i).Value;
+                orig.Line(line1.P1, line1.P2, CvColor.Blue, 1);
+                for (int j = i + 1; j < cornerLines.Total; j++)
+                {
+
+
+                    CvLineSegmentPoint line2 = cornerLines.GetSeqElem<CvLineSegmentPoint>(j).Value;
+
+
+                    CvPoint pt = getIntersect(line1, line2);
+
+
+                    if (pt.X >= 0 && pt.Y >= 0 && pt.X < gray.Width && pt.Y < gray.Height)
+                    {
+
+                        if (poly[i] == -1 && poly[j] == -1)
+                        {
+                            List<CvPoint> v = new List<CvPoint>();
+                            v.Add(pt);
+                            corners.Insert(curPoly, v);
+                            poly[i] = curPoly;
+                            poly[j] = curPoly;
+                            curPoly++;
+                            continue;
+                        }
+                        if (poly[i] == -1 && poly[j] >= 0)
+                        {
+                            corners[poly[j]].Add(pt);
+                            poly[i] = poly[j];
+                            continue;
+                        }
+                        if (poly[i] >= 0 && poly[j] == -1)
+                        {
+                            corners[poly[i]].Add(pt);
+                            poly[j] = poly[i];
+                            continue;
+                        }
+                        if (poly[i] >= 0 && poly[j] >= 0)
+                        {
+                            if (poly[i] == poly[j])
+                            {
+                                corners[poly[i]].Add(pt);
+                                continue;
+                            }
+
+                            for (int k = 0; k < corners[poly[j]].Count; k++)
+                            {
+                                corners[poly[i]].Add(corners[poly[j]][k]);
+                            }
+
+                            corners[poly[j]].Clear();
+                            poly[j] = poly[i];
+                            continue;
+                        }
+                    }
+
+                }
+            }
+            #endregion
+
+#if DEBUG
+
+            for (int i = 0; i < corners.Count; i++)
+            {
+                for (int j = 0; j < corners[i].Count; j++)
+                {
+                    CvPoint pt = corners[i].ElementAt(j);
+                    orig.Line(pt, pt, new CvScalar((i % 4) * 255 / 4, (i % 2) * 100, (i % 3) * 70), 10);
+                }
+            }
+
+#endif
+
+
+            for (int i = 0; i < corners.Count; i++)
+            {
+                CvPoint center = new CvPoint(0, 0);
+                if (corners[i].Count < 4) continue;
+                for (int j = 0; j < corners[i].Count; j++)
+                {
+                    center += corners[i][j];
+                }
+                center *= (1.0 / corners[i].Count);
+                sortCorners(corners[i], center);
+#if DEBUG
+                for (int j = 0; j < corners[i].Count; j++)
+                {
+                    orig.Line(corners[i].ElementAt(j), corners[i].ElementAt(j), CvColor.Red, 10);
+                }
+                orig.Line(center, center, CvColor.White, 10);
+#endif
+
+            }
+
+            int area = 0;
+            int I = 0;
+            for (int i = 0; i < corners.Count; i++)
+            {
+
+                if (corners[i].Count < 4) continue;
+                CvRect r = Cv.BoundingRect(corners[i]);
+                if (r.Width * r.Height < area)
+                    continue;
+                area = r.Width * r.Height;
+                I = i;
+            }
+
+            {
+                int i = I;
+                CvRect r = Cv.BoundingRect(corners[I]);
+
+
+                CvMat quad = new CvMat(r.Height, r.Width, MatrixType.U8C3);
+                quad.Zero();
+                CvPoint2D32f[] src_pf = new CvPoint2D32f[4];
+                CvPoint2D32f[] dst_pf = new CvPoint2D32f[4];
+                for (int j = 0; j < corners[i].Count; j++)
+                {
+                    src_pf[j] = new CvPoint2D32f(corners[i].ElementAt(j).X, corners[i].ElementAt(j).Y);
+                }
+                dst_pf[0] = new CvPoint2D32f(0, 0);
+                dst_pf[1] = new CvPoint2D32f(quad.Cols, 0);
+                dst_pf[3] = new CvPoint2D32f(quad.Cols, quad.Rows);
+                dst_pf[2] = new CvPoint2D32f(0, quad.Rows);
+
+
+                CvMat transmtx = Cv.GetPerspectiveTransform(src_pf, dst_pf);
+                IplImage ipl = new IplImage(r.Width, r.Height, BitDepth.U8, 3);
+
+                Cv.WarpPerspective(orig, ipl, transmtx);
+
+                Cv.ShowImage(filePath + i, ipl);
+            }
+
+            Cv.ShowImage(filePath, orig);
+            return -1;
+        }
+
+        private  void sortCorners(List<CvPoint> corners, CvPoint center)
+        {
+            List<CvPoint> top = new List<CvPoint>();
+            List<CvPoint> bot = new List<CvPoint>();
+            
+            for (int i = 0; i < corners.Count; i++)  
+            {  
+                if (corners[i].Y < center.Y)  
+                    top.Add(corners[i]);  
+                else  
+                    bot.Add(corners[i]);  
+            }
+            top.Sort((a, b) =>
+            {
+                int result = a.X.CompareTo(b.X);
+                if (result == 0) result = a.Y.CompareTo(b.Y);
+                return result;
+            });
+
+            bot.Sort((a, b) =>
+            {
+                int result = a.X.CompareTo(b.X);
+                if (result == 0) result = a.Y.CompareTo(b.Y);
+                return result;
+            });
+
+            CvPoint tl = top[0];
+            CvPoint tr = top[top.Count-1];
+            CvPoint bl = bot[0];
+            CvPoint br = bot[bot.Count - 1];
+
+            corners.Clear();
+            corners.Add(tl);
+            corners.Add(tr);
+            corners.Add(bl);
+            corners.Add(br);
+
+     
+        }
+       
         private  void ClickPhoto()
 
         {
@@ -587,6 +816,7 @@ namespace Read_for_blind
                     using (FileStream filestream = new FileStream(photolocation, FileMode.Create))
                         encoder.Save(filestream);
                 }
+                setAutoRotation("temp.jpg");
             }
         ));
             processTesseract();
@@ -606,7 +836,7 @@ namespace Read_for_blind
             Tesseract tesseract = new Tesseract(".\\Tesseract-OCR");
              speakObj = new Speak("out.txt");
             speakObj.speakText("Please Wait...While Image is processed...");
-            tesseract.getTextFile("1.jpg");
+            tesseract.getTextFile("temp.jpg");
             speakObj.speakText("Process Done");
             speakObj.speakText("Reading File Now");
             speakObj.speakFile();
