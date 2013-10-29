@@ -72,7 +72,7 @@ namespace Read_for_blind
         private Thread _voiceThread = null;
         private MediaCapture capture = null;
         private String deviceId = "";
-   
+        private Tesseract tesseract = null;
         private Windows.Media.MediaProperties.VideoEncodingProperties resolutionMax = null;
         private MediaCaptureInitializationSettings settings = null;
         private List<DeviceInformation> cameraList = new List<DeviceInformation>();
@@ -97,8 +97,10 @@ namespace Read_for_blind
             DirectionText[4] = "Top";
             DirectionText[5] = "Bottom";
             DirectionText[6] = "Right";
-           
-           
+
+             tesseract = new Tesseract(".\\Tesseract-OCR");
+            speakObj = new Speak("out.txt");
+     
             _cameraThread = new Thread(new ThreadStart(CaptureCameraCallback));
             _voiceThread = new Thread(new ThreadStart(voiceCallBack));
            _cameraThread.Start();
@@ -216,10 +218,15 @@ namespace Read_for_blind
                         {
                             #region BLOCK_DETECTION
 
-                            mainImage.Smooth(mainImage, SmoothType.Blur, 15, 15);
+                            mainImage.PyrMeanShiftFiltering(mainImage, 10, 35, 3);
+                          //  mainImage.Smooth(mainImage, SmoothType.Blur, 5,5);
                             mainImage.CvtColor(gray, ColorConversion.BgrToGray);
 
 
+                           
+
+                            
+                            Cv.Smooth(gray, gray, SmoothType.Blur, 3, 3);
                  
                             Cv.Canny(gray, gray, 35, 35, ApertureSize.Size3);
                             gray.Smooth(gray, SmoothType.Blur, 3, 3);
@@ -294,7 +301,7 @@ namespace Read_for_blind
 
                                             }
                                         }
-#if DEBUG
+#if VERBOSE
                                         foreach (var point in points)
                                             mainImage.Line(point, point, CvColor.Yellow, 10);
 #endif
@@ -318,7 +325,7 @@ namespace Read_for_blind
                                             int x = (mid.X < HORI[0]) ? 0 : (mid.X / HORI[1]) + 1;
                                             int y = (mid.Y < VERTI[0]) ? 0 : (mid.Y / VERTI[1]) + 1;
                                             Status[x, y]++;
-#if DEBUG
+#if VERBOSE
                                             mainImage.Line(mid, mid, CvColor.Green, 10);
 #endif
 
@@ -342,7 +349,10 @@ namespace Read_for_blind
                             #endregion
 
                             int DIRECTION = getClipDirection(display, HORI, VERTI, minL, minT);
-                            display.PutText(getDirection(DIRECTION), new CvPoint(1 * WIDTH / 3 + (WIDTH / 6), 1 * HEIGHT / 3 + HEIGHT / 6), new CvFont(FontFace.HersheyTriplex, 1, 1), CvColor.Navy);
+                            //display.PutText(getDirection(DIRECTION), new CvPoint(1 * WIDTH / 3 + (WIDTH / 6), 1 * HEIGHT / 3 + HEIGHT / 6), new CvFont(FontFace.HersheyTriplex, 1, 1), CvColor.Navy);
+                            speakObj.speakText("" + getDirection(DIRECTION));
+
+
 
                         }
                         catch (OpenCvSharp.OpenCvSharpException)
@@ -350,12 +360,10 @@ namespace Read_for_blind
 
                         }
                         catch (OpenCVException ) { }
- #region Saving 
-                       
-#endregion
 
 
-                        Bitmap bm = BitmapConverter.ToBitmap(display);
+
+                        Bitmap bm = BitmapConverter.ToBitmap(mainImage);
                         BitmapImage bitmapImage;
                         this.Dispatcher.Invoke((Action)(() =>
                         {
@@ -495,10 +503,16 @@ namespace Read_for_blind
             int x3 =line2.P1.X, y3 = line2.P1.Y, x4 = line2.P2.X, y4 = line2.P2.Y;   
             float d=0;
 
+            if (Math.Sqrt(Math.Abs((line1.P1.X - line1.P2.X) * (line1.P1.X - line1.P2.X) + (line1.P1.Y - line1.P2.Y) * (line1.P1.Y - line1.P2.Y))) < 100)
+                return new CvPoint(-1, -1);
+
+            if (Math.Sqrt(Math.Abs((line2.P1.X - line2.P2.X) * (line2.P1.X - line2.P2.X) + (line2.P1.Y - line2.P2.Y) * (line2.P1.Y - line2.P2.Y))) < 100)
+                return new CvPoint(-1, -1);
+
             d = ((float)(x1 - x2) * (y3 - y4)) - ((y1 - y2) * (x3 - x4));
             point.X =(int) (((x1*y2 - y1*x2) * (x3-x4) - (x1-x2) * (x3*y4 - y3*x4)) / d);  
             point.Y = (int) (((x1*y2 - y1*x2) * (y3-y4) - (y1-y2) * (x3*y4 - y3*x4)) / d);
-            
+
             if (point.X < Math.Min(x1, x2) - 10 || point.X > Math.Max(x1, x2) + 10 || point.Y < Math.Min(y1, y2) - 10 || point.Y > Math.Max(y1, y2) + 10)
             {  
                 return new CvPoint(-1,-1);  
@@ -540,31 +554,40 @@ namespace Read_for_blind
             return DirectionText[i];
         }
 
-        private int setAutoRotation(String filePath)
+        private IplImage setAutoRotation(String filePath)
         {
+         
             CvMemStorage cornerStorage = new CvMemStorage();
             IplImage orig = new IplImage(filePath);
+            IplImage original = orig.Clone();
             IplImage gray = new IplImage(orig.Size, BitDepth.U8, 1);
-            Cv.Smooth(orig, orig, SmoothType.Gaussian, 3, 3);
+            IplImage ipl = null;
+           // Cv.Smooth(orig, orig, SmoothType.Blur, 5, 5);
+          
+            Cv.PyrMeanShiftFiltering(orig, orig, 10, 35, 3);
+           
             orig.CvtColor(gray, ColorConversion.BgrToGray);
-            Cv.Canny(gray, gray, 25, 25, ApertureSize.Size3);
+            Cv.Canny(gray, gray, 35, 35, ApertureSize.Size3);
+            Cv.Smooth(gray, gray, SmoothType.Blur, 3, 3);
+            double threshold=orig.Width+orig.Height/2;
 
-
-            CvSeq cornerLines = gray.HoughLines2(cornerStorage, HoughLinesMethod.Probabilistic, 1, Math.PI / 180, 70, 30, 50);
-
+            CvSeq cornerLines = gray.HoughLines2(cornerStorage, HoughLinesMethod.Probabilistic, 1, Math.PI / 180, 100,50,50);
+        
             int[] poly = new int[cornerLines.Total];
             int curPoly = 0;
             for (int k = 0; k < cornerLines.Total; k++)
                 poly[k] = -1;
             List<List<CvPoint>> corners = new List<List<CvPoint>>();
+           
             #region Dividing into Groups
             for (int i = 0; i < cornerLines.Total; i++)
             {
                 CvLineSegmentPoint line1 = cornerLines.GetSeqElem<CvLineSegmentPoint>(i).Value;
                 orig.Line(line1.P1, line1.P2, CvColor.Blue, 1);
+               
                 for (int j = i + 1; j < cornerLines.Total; j++)
                 {
-
+                    
 
                     CvLineSegmentPoint line2 = cornerLines.GetSeqElem<CvLineSegmentPoint>(j).Value;
 
@@ -618,7 +641,9 @@ namespace Read_for_blind
 
                 }
             }
+
             #endregion
+         
 
 #if DEBUG
 
@@ -627,12 +652,12 @@ namespace Read_for_blind
                 for (int j = 0; j < corners[i].Count; j++)
                 {
                     CvPoint pt = corners[i].ElementAt(j);
-                    orig.Line(pt, pt, new CvScalar((i % 4) * 255 / 4, (i % 2) * 100, (i % 3) * 70), 10);
+                    orig.Line(pt, pt, new CvScalar(i*55,i*55,i*0,i*50),10);
                 }
             }
-
+             
 #endif
-
+           
 
             for (int i = 0; i < corners.Count; i++)
             {
@@ -643,7 +668,8 @@ namespace Read_for_blind
                     center += corners[i][j];
                 }
                 center *= (1.0 / corners[i].Count);
-                sortCorners(corners[i], center);
+                sortCorners(corners[i], center,orig);
+                 
 #if DEBUG
                 for (int j = 0; j < corners[i].Count; j++)
                 {
@@ -653,56 +679,69 @@ namespace Read_for_blind
 #endif
 
             }
+           
+           int area = 0;
+           int I = 0;
+           for (int i = 0; i < corners.Count; i++)
+           {
 
-            int area = 0;
-            int I = 0;
-            for (int i = 0; i < corners.Count; i++)
-            {
+               if (corners[i].Count < 4) continue;
+               CvRect r = Cv.BoundingRect(corners[i]);
+               if (r.Width * r.Height < area)
+                   continue;
+               area = r.Width * r.Height;
+               I = i;
+           }
 
-                if (corners[i].Count < 4) continue;
-                CvRect r = Cv.BoundingRect(corners[i]);
-                if (r.Width * r.Height < area)
-                    continue;
-                area = r.Width * r.Height;
-                I = i;
-            }
+           CvRect rect=new CvRect();
+           try
+           {
+               rect = Cv.BoundingRect(corners[I]);
+           }
+           catch
+           {
+                
+           }
+           if(rect.Width!=0 && rect.Height!=0){
 
-            {
-                int i = I;
-                CvRect r = Cv.BoundingRect(corners[I]);
-
-
-                CvMat quad = new CvMat(r.Height, r.Width, MatrixType.U8C3);
-                quad.Zero();
-                CvPoint2D32f[] src_pf = new CvPoint2D32f[4];
-                CvPoint2D32f[] dst_pf = new CvPoint2D32f[4];
-                for (int j = 0; j < corners[i].Count; j++)
-                {
-                    src_pf[j] = new CvPoint2D32f(corners[i].ElementAt(j).X, corners[i].ElementAt(j).Y);
-                }
-                dst_pf[0] = new CvPoint2D32f(0, 0);
-                dst_pf[1] = new CvPoint2D32f(quad.Cols, 0);
-                dst_pf[3] = new CvPoint2D32f(quad.Cols, quad.Rows);
-                dst_pf[2] = new CvPoint2D32f(0, quad.Rows);
+               CvMat quad = new CvMat(rect.Height, rect.Width, MatrixType.U8C3);
+                   //  quad.Zero();
+                   CvPoint2D32f[] src_pf = new CvPoint2D32f[4];
+                   CvPoint2D32f[] dst_pf = new CvPoint2D32f[4];
+                   for (int j = 0; j < 4; j++)
+                   {
+                       src_pf[j] = new CvPoint2D32f(corners[I].ElementAt(j).X, corners[I].ElementAt(j).Y);
+                   }
+                   dst_pf[0] = new CvPoint2D32f(0, 0);
+                   dst_pf[1] = new CvPoint2D32f(quad.Cols, 0);
+                   dst_pf[2] = new CvPoint2D32f(0, quad.Rows);
+                   dst_pf[3] = new CvPoint2D32f(quad.Cols, quad.Rows);
 
 
-                CvMat transmtx = Cv.GetPerspectiveTransform(src_pf, dst_pf);
-                IplImage ipl = new IplImage(r.Width, r.Height, BitDepth.U8, 3);
 
-                Cv.WarpPerspective(orig, ipl, transmtx);
 
-                Cv.ShowImage(filePath + i, ipl);
-            }
+                   CvMat transmtx = Cv.GetPerspectiveTransform(src_pf, dst_pf);
+                    ipl = new IplImage(rect.Width, rect.Height, BitDepth.U8, 3);
 
-            Cv.ShowImage(filePath, orig);
-            return -1;
+                   Cv.WarpPerspective(original, ipl, transmtx);
+                   
+                  Cv.ShowImage(filePath + I, ipl);
+
+       }
+            
+        //    Cv.ShowImage("Gray",gray);
+        //    Cv.ShowImage(filePath, orig);
+
+            return ipl;
+        
         }
 
-        private  void sortCorners(List<CvPoint> corners, CvPoint center)
+        private  void sortCorners(List<CvPoint> corners, CvPoint center,IplImage orig)
         {
             List<CvPoint> top = new List<CvPoint>();
             List<CvPoint> bot = new List<CvPoint>();
-            
+           
+        
             for (int i = 0; i < corners.Count; i++)  
             {  
                 if (corners[i].Y < center.Y)  
@@ -710,6 +749,23 @@ namespace Read_for_blind
                 else  
                     bot.Add(corners[i]);  
             }
+            /*
+            CvPoint centerTop = new CvPoint();
+            for (int j = 0; j < top.Count; j++)
+            {
+                centerTop += top[j];
+            }
+            centerTop *= (1.0 / top.Count);
+            orig.Line(centerTop, centerTop, CvColor.Green, 10);
+            CvPoint centerBot = new CvPoint();
+            for (int j = 0; j < bot.Count; j++)
+            {
+                centerBot += bot[j];
+            }
+            centerBot *= (1.0 / bot.Count);
+            orig.Line(centerBot, centerBot, CvColor.Green, 10);
+            */
+
             top.Sort((a, b) =>
             {
                 int result = a.X.CompareTo(b.X);
@@ -723,40 +779,101 @@ namespace Read_for_blind
                 if (result == 0) result = a.Y.CompareTo(b.Y);
                 return result;
             });
+           
+            List<CvPoint> topLeft = new List<CvPoint>();
+            List<CvPoint> topRight = new List<CvPoint>();
+            List<CvPoint> botLeft = new List<CvPoint>();
+            List<CvPoint> botRight = new List<CvPoint>();
+            for (int i = 0; i < top.Count; i++)
+            {
+                if (top[i].X < center.X)
+                    topLeft.Add(top[i]);
+                else
+                    topRight.Add(top[i]);
+            }
 
-            CvPoint tl = top[0];
-            CvPoint tr = top[top.Count-1];
-            CvPoint bl = bot[0];
-            CvPoint br = bot[bot.Count - 1];
+            for (int i = 0; i < bot.Count; i++)
+            {
+                if (bot[i].X < center.X)
+                    botLeft.Add(bot[i]);
+                else
+                   botRight.Add(bot[i]);
+            }  
+            topLeft.Sort((a, b) =>
+            {
+                int result = a.Y.CompareTo(b.Y);
+                if (result == 0) result = a.X.CompareTo(b.X);
+                return result;
+            });
+          
+           botLeft.Sort((a, b) =>
+           {
+               int result = b.Y.CompareTo(a.Y);
+               if (result == 0) result = b.X.CompareTo(a.X);
+               return result;
+           }); 
+           topRight.Sort((a, b) =>
+           {
+               int result = a.Y.CompareTo(b.Y);
+               if (result == 0) result =a.X.CompareTo(b.X);
+               return result;
+           });
+           
+          botRight.Sort((a, b) =>
+          {
+              int result = b.Y.CompareTo(a.Y);
+              if (result == 0) result = b.X.CompareTo(a.X);
+              return result;
+          });
+          CvPoint tl, tr, bl, br;
 
-            corners.Clear();
-            corners.Add(tl);
-            corners.Add(tr);
-            corners.Add(bl);
-            corners.Add(br);
+          if (top.Count < 1 || bot.Count < 1 || botLeft.Count < 1 || botRight.Count < 1 || topLeft.Count < 1 || topRight.Count < 1)
+              return;
+           tl = top[0];
+           tr = topRight[0];
+          
+          
+            bl =botLeft[0];
+           
+            br = bot[bot.Count-1];
+           double slope = Double.MaxValue;
+           if(top[0].X!=topLeft[0].X)
+           slope=(top[0].Y-topLeft[0].Y)/(top[0].X-topLeft[0].X)*1.0;
 
-     
+         
+          if (slope < 0)
+          {
+
+              tl = topLeft[0];
+              tr = top[top.Count - 1];
+              bl = bot[0];
+              br = botRight[0];
+          }
+          corners.Clear();
+          corners.Add(tl);
+          corners.Add(tr);
+          corners.Add(bl);
+          corners.Add(br);
+
+
+
         }
-       
+   
         private  void ClickPhoto()
 
         {
-
-
-          
-
             cap.Dispose();
             
             Thread.Sleep(500);
-          
+            String filename = "";
             this.Dispatcher.BeginInvoke((Action)(async () =>
             {
-              
-
+                Debug.Content = "";
                 capture = new MediaCapture();
                 var devices = await Windows.Devices.Enumeration.DeviceInformation.FindAllAsync(Windows.Devices.Enumeration.DeviceClass.VideoCapture);
                 for (int i = 0; i < devices.Count; i++)
                 {
+                    Debug.Content += devices[i].Name+":"+devices[i].IsEnabled+" ";
                     cameraList.Add(devices[i]);
                     deviceId = devices[0].Id;
                 }
@@ -765,7 +882,7 @@ namespace Read_for_blind
                 settings.VideoDeviceId = deviceId;
                 
                 settings.PhotoCaptureSource = Windows.Media.Capture.PhotoCaptureSource.VideoPreview;
-                settings.StreamingCaptureMode = Windows.Media.Capture.StreamingCaptureMode.Video;
+                settings.StreamingCaptureMode = Windows.Media.Capture.StreamingCaptureMode.AudioAndVideo;
                 
                 await capture.InitializeAsync(settings);
                 
@@ -784,10 +901,16 @@ namespace Read_for_blind
                         
                     }
                 }
+
                 System.Diagnostics.Debug.WriteLine(resolutionMax.Width);
                 await capture.VideoDeviceController.SetMediaStreamPropertiesAsync(MediaStreamType.Photo, resolutionMax);
                 capture.VideoDeviceController.Focus.TrySetAuto(true);
-                
+                capture.VideoDeviceController.WhiteBalance.TrySetAuto(true);
+                capture.VideoDeviceController.Contrast.TrySetAuto(true);
+                capture.VideoDeviceController.Exposure.TrySetAuto(true);
+                capture.VideoDeviceController.BacklightCompensation.TrySetAuto(true);
+                capture.VideoDeviceController.Brightness.TrySetAuto(true);
+
                 ImageEncodingProperties imageProperties = Windows.Media.MediaProperties.ImageEncodingProperties.CreateJpeg();
                 var fPhotoStream = new InMemoryRandomAccessStream();
 
@@ -809,34 +932,41 @@ namespace Read_for_blind
                     preview.Source = bitmapImage;
                  
                     JpegBitmapEncoder encoder = new JpegBitmapEncoder();
-                    String photolocation = "temp.jpg";
-
+                    String photolocation = "temp-orig.jpg";
+                    filename = photolocation;
                     encoder.Frames.Add(BitmapFrame.Create(bitmapImage));
 
                     using (FileStream filestream = new FileStream(photolocation, FileMode.Create))
                         encoder.Save(filestream);
+
                 }
-                setAutoRotation("temp.jpg");
-            }
-        ));
-            processTesseract();
+                try
+                {
+                   
+                    Bitmap bitmap = BitmapConverter.ToBitmap(setAutoRotation("temp-orig.jpg"));
+                    bitmap.Save("temp.jpg");
+                    filename = "temp.jpg";
+                }
+                catch { }
+                  
+            }));
+            processTesseract(filename);
             _cameraThread.Abort();
           
           
            
-           
+        
               
           
 
         }
        
-        private void processTesseract()
+        private void processTesseract(String filename)
         {
             
-            Tesseract tesseract = new Tesseract(".\\Tesseract-OCR");
-             speakObj = new Speak("out.txt");
+ 
             speakObj.speakText("Please Wait...While Image is processed...");
-            tesseract.getTextFile("temp.jpg");
+            tesseract.getTextFile(filename);
             speakObj.speakText("Process Done");
             speakObj.speakText("Reading File Now");
             speakObj.speakFile();
