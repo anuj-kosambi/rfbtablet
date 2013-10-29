@@ -17,12 +17,17 @@ namespace Read_for_blind
            // string fileText = File.ReadAllText(filePath);
            // System.Diagnostics.Debug.WriteLine(fileText);
             speechSynt = new SpeechSynthesizer();
-           
+
+            speechSynt.SelectVoiceByHints(VoiceGender.Female, VoiceAge.Teen, 0, new System.Globalization.CultureInfo("en-IN"));
+          
 
         }
         public void speakText(String text)
         {
-            speechSynt.Speak(text);
+           
+                speechSynt.Speak(text);
+            
+           
         }
         public void speakFile()
         {

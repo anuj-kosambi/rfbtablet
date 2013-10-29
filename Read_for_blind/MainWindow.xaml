@@ -4,7 +4,6 @@
         Title="MainWindow" Height="350" Width="525"  >
     <Grid>
         <Image x:Name="preview" HorizontalAlignment="Left" Height="319" Margin="0,0,0,0" VerticalAlignment="Top" Width="517"/>
-        <Label x:Name="Debug" Content="DebugData" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Height="25" Width="485"/>
 
 
     </Grid>

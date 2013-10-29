@@ -17,6 +17,7 @@ namespace Read_for_blind
             Replay=0,
             Pause=1,
             Resume=2
+         
             
         }
         public static State state;
