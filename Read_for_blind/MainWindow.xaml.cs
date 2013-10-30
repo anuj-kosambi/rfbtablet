@@ -273,10 +273,9 @@ namespace Read_for_blind
                 _restart.Abort();
             if (_mainThread != null && _mainThread.IsAlive)
                 _mainThread.Abort();
-            Dispatcher.BeginInvoke((Action)(() =>
-            {
+           
                 base.OnClosing(e);
-            }));
+          
         }
 
         private void CaptureCameraCallback()
