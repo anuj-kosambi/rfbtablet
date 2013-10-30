@@ -63,6 +63,7 @@ namespace Read_for_blind
         }
         int DIRECTION;
 
+        
         private Speak speakObj = null;
         private SpeechRecognitionEngine recognizer;
         public static double MARGINW = 5, MARGINH = 5;
@@ -92,6 +93,7 @@ namespace Read_for_blind
             this.preview.Height = SystemParameters.WorkArea.Height;
             this.preview.Stretch = Stretch.Fill;
             this.preview.StretchDirection = StretchDirection.Both;
+            this.WindowStyle = WindowStyle.ToolWindow;
             
             this.preview.Source = (new ImageSourceConverter()).ConvertFromString("Main Page.png") as ImageSource;
             this.Loaded += MainWindow_Loaded;
@@ -105,6 +107,7 @@ namespace Read_for_blind
             DirectionText[5] = "Up";
             DirectionText[6] = "Left";
 
+           
              tesseract = new Tesseract(".\\Tesseract-OCR");
             speakObj = new Speak("out.txt");
 
@@ -176,7 +179,7 @@ namespace Read_for_blind
                 if (e.Result.Text == "Read For Blind exit")
                 {
 
-                    OnClosing(null);
+                    exitFunction();
 
                 }
                 else
@@ -219,7 +222,7 @@ namespace Read_for_blind
                         }
                         else if (e.Result.Text == "Read For Blind no")
                         {
-                            speakObj.speakText("No Detected");
+                            speakObj.speakText("No Detected ...Bye Bye");
                             CommandStatus = false;
 
 
@@ -262,18 +265,13 @@ namespace Read_for_blind
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
 
         {
-            if (speakObj != null)
-            {
-                if(speakObj.speechSynt.State==System.Speech.Synthesis.SynthesizerState.Speaking)
-                speakObj.speechSynt.Pause();
-                speakObj.speechSynt.Dispose();
-            }
+
             if (_cameraThread != null && _cameraThread.IsAlive)
                 _cameraThread.Abort();
-            _cameraThread.Join();
+         
             if (_voiceThread != null && _voiceThread.IsAlive)
                 _voiceThread.Abort();
-            _voiceThread.Join();
+         
             if (_restart != null && _restart.IsAlive)
                 _restart.Abort();
             if (_mainThread != null && _mainThread.IsAlive)
@@ -1113,14 +1111,8 @@ namespace Read_for_blind
             else if (CommandStatus == false)
             {
 
-                Dispatcher.BeginInvoke((Action)(() =>
 
-                {
-
-                    OnClosed(null);
-                }));
-             
-            
+                exitFunction();
                
            
             }
@@ -1130,7 +1122,16 @@ namespace Read_for_blind
 
         }
 
-       
+        private void exitFunction()
+        {
+            Dispatcher.BeginInvoke((Action)(() =>
+            {
+                OnClosed(null);
+                Application.Current.Shutdown();
+            }));
+             
+           
+        }
 
     }
 }
