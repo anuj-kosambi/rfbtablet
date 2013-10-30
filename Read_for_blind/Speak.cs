@@ -24,7 +24,17 @@ namespace Read_for_blind
         }
         public void speakText(String text)
         {
-            speechSynt.Speak(text);
+            if (speechSynt.State != SynthesizerState.Paused)
+            {
+                try
+                {
+                    speechSynt.Speak(text);
+                }
+                catch (Exception e)
+                {
+                }
+            }
+           
         }
         public void speakTextAsync(String text)
         {

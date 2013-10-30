@@ -1,0 +1,57 @@
+Frequently Asked Desktop Interview Questions
+
+Desktop &Networkin2 Question & Answers
+
+1. What is IP address?
+
+IP address is an identifier for a Computer or Device.
+
+Class A IP Address 1 — 126, Class B IP Address 128 — 191, Class C IP Address 192 -223. And
+127.001 is Loop back IP address. It will check the System Connectivity. Each machine connected
+to the Internet has an address known as an Internet Protocol address (IP address). The IP
+address takes the form of four numbers separated by dots, for example: 192,168.01
+
+You want to see System IP address goes to
+Start- Run» Type cmd — type ipconfig /all
+
+You want to confirm any system connected in the system network type ping 192,168.01
+(192.168.0.1 this system IP address)
+
+2. What is subnet mask?
+
+Subnet mask is used for identify the Network.
+
+Example:
+
+For a class A address, a standard subnet mask is 255,000,
+
+For a class B address, a standard subnet mask is 2S5.25S.0.0,
+For a class C address, a standard subnet mask is 255.255.2550,
+
+3. What is DNS?
+
+Domain Naming Service. It'll Resolve IP Address to Hostname (FQDN) and Hostname to IP
+address. In DNS there are two Zones.
+
+1. Forward Lookup Zone
+
+2. Reverse Lookup Zone.
+
+FQDN — Fully Qualified Domain Name
+
+4. What is WINS?
+
+Windows Internet Naming Service. It is used to resolve NetB|OS name to IP address & Vice
+versa. Short for Windows Internet Naming Service, a system that determines the IP address
+associated with a particular network computer. This is called name resolution. WINS supports
+network client and server computers running Windows and can provide name resolution for
+other computers with special arrangements. Determining the IP address for a computer is a
+complex process when DHCP servers assign IP addresses dynamically. For example, it is possible
+for DHCP to assign a different IP address to a client each time the machine logs on to the
+network.
+
+WINS uses a distributed database that is automatically updated with the names of computers
+currently available and the IP address assigned to each one.
+
+.1.
+

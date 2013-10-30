@@ -23,6 +23,10 @@ namespace Read_for_blind
             
             process.StartInfo.FileName = "tesseract.exe";
             process.StartInfo.WorkingDirectory = this.Path;
+            if (File.Exists("../out.text"))
+            {
+                File.Delete("../out.text");
+            }
             process.StartInfo.Arguments = "../"+imageName+"  " + "../out";
             process.StartInfo.CreateNoWindow = true;
             process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
