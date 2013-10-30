@@ -92,8 +92,10 @@ namespace Read_for_blind
             this.preview.Height = SystemParameters.WorkArea.Height;
             this.preview.Stretch = Stretch.Fill;
             this.preview.StretchDirection = StretchDirection.Both;
+
+            this.preview.Source = (new ImageSourceConverter()).ConvertFromString("pack://application:,,,/Main Page.png") as ImageSource;
             this.Loaded += MainWindow_Loaded;
-            
+           
             DirectionText = new string[10];
             DirectionText[0] = "Nice";
             DirectionText[1] = "Up";
