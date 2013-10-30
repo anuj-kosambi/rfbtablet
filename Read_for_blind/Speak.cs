@@ -19,15 +19,16 @@ namespace Read_for_blind
             speechSynt = new SpeechSynthesizer();
 
             speechSynt.SelectVoiceByHints(VoiceGender.Female, VoiceAge.Teen, 0, new System.Globalization.CultureInfo("en-IN"));
-          
+            
 
         }
         public void speakText(String text)
         {
-           
-                speechSynt.Speak(text);
-            
-           
+            speechSynt.Speak(text);
+        }
+        public void speakTextAsync(String text)
+        {
+            speechSynt.SpeakAsync(text);
         }
         public void speakFile()
         {

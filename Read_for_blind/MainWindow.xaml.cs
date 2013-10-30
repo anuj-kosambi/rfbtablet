@@ -62,7 +62,7 @@ namespace Read_for_blind
             Invaild=4
         }
         int DIRECTION;
-        private Boolean _lock=false;
+
         private Speak speakObj = null;
         private SpeechRecognitionEngine recognizer;
         public static double MARGINW = 5, MARGINH = 5;
@@ -72,6 +72,7 @@ namespace Read_for_blind
         private CvCapture cap;
         private Thread _cameraThread = null;
         private Thread _voiceThread = null;
+        private Thread _mainThread = null;
         private Thread _restart = null;
         private MediaCapture capture = null;
         private String deviceId = "";
@@ -86,20 +87,21 @@ namespace Read_for_blind
             InitializeComponent();
             this.WindowStartupLocation = WindowStartupLocation.CenterScreen;
             this.WindowState = WindowState.Maximized;
-
+            this.Title = "Read_For_Blind";
             this.preview.Width = SystemParameters.WorkArea.Width;
             this.preview.Height = SystemParameters.WorkArea.Height;
             this.preview.Stretch = Stretch.Fill;
             this.preview.StretchDirection = StretchDirection.Both;
             this.Loaded += MainWindow_Loaded;
+            
             DirectionText = new string[10];
             DirectionText[0] = "Nice";
             DirectionText[1] = "Up";
             DirectionText[2] = "Down";
-            DirectionText[3] = "Left";
-            DirectionText[4] = "Top";
-            DirectionText[5] = "Bottom";
-            DirectionText[6] = "Right";
+            DirectionText[3] = "Right";
+            DirectionText[4] = "Bottom";
+            DirectionText[5] = "Up";
+            DirectionText[6] = "Left";
 
              tesseract = new Tesseract(".\\Tesseract-OCR");
             speakObj = new Speak("out.txt");
@@ -110,17 +112,22 @@ namespace Read_for_blind
 
         void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            StartUpMenu();
+
+            _mainThread = new Thread(new ThreadStart(StartUpMenu));
+            _mainThread.Start();
+           // StartUpMenu();
         }
 
         private void StartUpMenu()
         {
             _voiceThread = new Thread(new ThreadStart(voiceCallBack));
             _voiceThread.Start();
-            speakObj.speakText("If you want to Listen to Tutorial ... Say Read for Blind Tutorial ");
-            speakObj.speakText("If you want to skip to the Reader ... Say Read for Blind Reader");
+            speakObj.speakTextAsync("If you want to Listen to Tutorial ... Say Read for Blind Tutorial ");
+            speakObj.speakTextAsync("If you want to skip to the Reader ... Say Read for Blind Reader");
+            Thread.Sleep(100);
             state = State.Command;
-        
+            while (state!=State.Normal)
+                Thread.Sleep(100);
 
             _cameraThread = new Thread(new ThreadStart(CaptureCameraCallback));
             _cameraThread.Start();
@@ -149,63 +156,81 @@ namespace Read_for_blind
         
         private void voiceCallBack()
         {
-          
+                state = State.Normal;
                 recognizer = new SpeechRecognitionEngine(new System.Globalization.CultureInfo("en-US"));
                 recognizer.LoadGrammar(RFBGrammar());
                 recognizer.SpeechRecognized += new EventHandler<SpeechRecognizedEventArgs>(recognizer_SpeechRecognized);
                 recognizer.SetInputToDefaultAudioDevice();
                 recognizer.RecognizeAsync(RecognizeMode.Multiple);
-                state = State.Normal;
+              
            
         }
 
         void recognizer_SpeechRecognized(object sender, SpeechRecognizedEventArgs e)
         {
-         
+            
             if (speakObj != null)
             {
-                if(state!=State.Command)
-                if (e.Result.Text == "Read For Blind pause" )
+                if (e.Result.Text == "Read For Blind exit")
                 {
 
-                    if (speakObj.speechSynt.State == System.Speech.Synthesis.SynthesizerState.Speaking)
-                    {
-                        
-                        speakObj.speechSynt.Pause();
-                        state = State.Pause;
-                    }
-
+                    OnClosing(null);
 
                 }
-
-                if (speakObj.speechSynt.State == System.Speech.Synthesis.SynthesizerState.Paused)
-               
+                else
                 {
-
                     if (state != State.Command)
-                    if (e.Result.Text == "Read For Blind resume")
-                    {
-                        speakObj.speechSynt.Resume();
-                        state = State.Resume;
-                    }
-                }
-                if (speakObj.speechSynt.State == System.Speech.Synthesis.SynthesizerState.Ready && state==State.Command)
-                {
-                    state = State.Normal;
-                    if (e.Result.Text == "Read For Blind yes")
-                    {
-                        speakObj.speakText("Yes Detected");
-                        CommandStatus = true;
-                        
-                      
+                        if (e.Result.Text == "Read For Blind pause")
+                        {
 
-                    }
-                    else if (e.Result.Text == "Read For Blind no")
-                    {
-                        speakObj.speakText("No Detected");
-                        CommandStatus = false;
-                     
+                            if (speakObj.speechSynt.State == System.Speech.Synthesis.SynthesizerState.Speaking)
+                            {
 
+                                speakObj.speechSynt.Pause();
+
+                                state = State.Pause;
+                            }
+
+
+                        }
+
+                    if (speakObj.speechSynt.State == System.Speech.Synthesis.SynthesizerState.Paused)
+                    {
+
+                        if (state != State.Command)
+                            if (e.Result.Text == "Read For Blind resume")
+                            {
+                                speakObj.speechSynt.Resume();
+                                state = State.Resume;
+                            }
+                    }
+                    if (speakObj.speechSynt.State == System.Speech.Synthesis.SynthesizerState.Ready && state == State.Command)
+                    {
+
+                        if (e.Result.Text == "Read For Blind yes")
+                        {
+                            speakObj.speakText("Yes Detected");
+                            CommandStatus = true;
+
+
+
+                        }
+                        else if (e.Result.Text == "Read For Blind no")
+                        {
+                            speakObj.speakText("No Detected");
+                            CommandStatus = false;
+
+
+                        }
+                        else if (e.Result.Text == "Read For Blind tutorial")
+                        {
+                            speakObj.speakText("Tutorial Detected");
+                        }
+                        else if (e.Result.Text == "Read For Blind reader")
+                        {
+                            speakObj.speakText("Starting Reader");
+                        }
+                        state = State.Normal;
                     }
                 }
                
@@ -218,7 +243,7 @@ namespace Read_for_blind
         {
 
          
-            Choices commandChoice = new Choices(new string[] { "replay", "pause", "resume","yes","no" });
+            Choices commandChoice = new Choices(new string[] { "tutorial", "pause", "resume","yes","no","reader","exit"});
             GrammarBuilder commandElement = new GrammarBuilder(commandChoice);
 
      
@@ -233,17 +258,25 @@ namespace Read_for_blind
         }
 
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+
         {
+            if (speakObj != null)
+            {
+                speakObj.speechSynt.Pause();
+                speakObj.speechSynt.Dispose();
+            }
             if (_cameraThread != null && _cameraThread.IsAlive)
                 _cameraThread.Abort();
             if (_voiceThread != null && _voiceThread.IsAlive)
                 _voiceThread.Abort();
             if (_restart != null && _restart.IsAlive)
                 _restart.Abort();
-            if (speakObj != null)
-                speakObj.speechSynt.Dispose();
-
-            base.OnClosing(e);
+            if (_mainThread != null && _mainThread.IsAlive)
+                _mainThread.Abort();
+            Dispatcher.BeginInvoke((Action)(() =>
+            {
+                base.OnClosing(e);
+            }));
         }
 
         private void CaptureCameraCallback()
@@ -324,9 +357,9 @@ namespace Read_for_blind
                              
 
                                 CvLineSegmentPoint elem = lines.GetSeqElem<CvLineSegmentPoint>(i).Value;
-
+#if VERBOSE
                                 display.Line(elem.P1, elem.P2, CvColor.Navy, 2);
-                                
+#endif
                                 if (elem.P1.X < HORI[0])
                                 { minL = Math.Max(elem.P1.X, minL); }
                                 if (elem.P2.X < HORI[0])
@@ -965,13 +998,13 @@ namespace Read_for_blind
                 
                 settings.PhotoCaptureSource = Windows.Media.Capture.PhotoCaptureSource.VideoPreview;
                 settings.StreamingCaptureMode = Windows.Media.Capture.StreamingCaptureMode.AudioAndVideo;
-                
+             
                 await capture.InitializeAsync(settings);
                 
 
                 int max = 0;
                 var resolutions = capture.VideoDeviceController.GetAvailableMediaStreamProperties(MediaStreamType.Photo);
-
+            
                 for (var i = 0; i < resolutions.Count; i++)
                 {
                     Windows.Media.MediaProperties.VideoEncodingProperties res = (Windows.Media.MediaProperties.VideoEncodingProperties)resolutions[i];
@@ -992,7 +1025,7 @@ namespace Read_for_blind
                 capture.VideoDeviceController.Exposure.TrySetAuto(true);
                 capture.VideoDeviceController.BacklightCompensation.TrySetAuto(true);
                 capture.VideoDeviceController.Brightness.TrySetAuto(true);
-
+                
                 ImageEncodingProperties imageProperties = Windows.Media.MediaProperties.ImageEncodingProperties.CreateJpeg();
                 var fPhotoStream = new InMemoryRandomAccessStream();
 
@@ -1002,7 +1035,7 @@ namespace Read_for_blind
 
                 byte[] bytes = new byte[fPhotoStream.Size];
                 await fPhotoStream.ReadAsync(bytes.AsBuffer(), (uint)fPhotoStream.Size, InputStreamOptions.None);
-
+                
                 BitmapImage bitmapImage = new BitmapImage();
                 
                 using (MemoryStream byteStream = new MemoryStream(bytes))
@@ -1047,13 +1080,13 @@ namespace Read_for_blind
         {
             
  
-           /* speakObj.speakText("Please Wait...While Image is processed...");
+            speakObj.speakText("Please Wait...While Image is processed...");
             tesseract.getTextFile(filename);
             speakObj.speakText("Process Done");
             speakObj.speakText("Reading Text Now");
             speakObj.speakFile();
             speakObj.speakText("Reading Done");
-            speakObj.speakText("Would You Like To Read Another Text...");*/
+            speakObj.speakText("Would You Like To Read Another Text...");
             speakObj.speakText("Say Read For Blind Yes ... Or ... Read For Blind No for Exit");
             state = State.Command;
 
