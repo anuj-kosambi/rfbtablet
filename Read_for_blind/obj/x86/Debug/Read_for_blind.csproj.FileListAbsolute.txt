@@ -18,3 +18,4 @@ c:\users\anuj\documents\visual studio 2012\Projects\Read_for_blind\Read_for_blin
 c:\users\anuj\documents\visual studio 2012\Projects\Read_for_blind\Read_for_blind\obj\x86\Debug\Read_for_blind.exe
 c:\users\anuj\documents\visual studio 2012\Projects\Read_for_blind\Read_for_blind\obj\x86\Debug\Read_for_blind.pdb
 C:\Users\anuj\Documents\Visual Studio 2012\Projects\Read_for_blind\Read_for_blind\obj\x86\Debug\Read_for_blind.csprojResolveAssemblyReference.cache
+C:\Users\anuj\Documents\Visual Studio 2012\Projects\Read_for_blind\Read_for_blind\bin\x86\Debug\Main Page.png

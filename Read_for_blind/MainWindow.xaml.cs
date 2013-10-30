@@ -92,8 +92,8 @@ namespace Read_for_blind
             this.preview.Height = SystemParameters.WorkArea.Height;
             this.preview.Stretch = Stretch.Fill;
             this.preview.StretchDirection = StretchDirection.Both;
-
-            this.preview.Source = (new ImageSourceConverter()).ConvertFromString("pack://application:,,,/Main Page.png") as ImageSource;
+            
+            this.preview.Source = (new ImageSourceConverter()).ConvertFromString("Main Page.png") as ImageSource;
             this.Loaded += MainWindow_Loaded;
            
             DirectionText = new string[10];
@@ -124,8 +124,8 @@ namespace Read_for_blind
         {
             _voiceThread = new Thread(new ThreadStart(voiceCallBack));
             _voiceThread.Start();
-            speakObj.speakTextAsync("If you want to Listen to Tutorial ... Say Read for Blind Tutorial ");
-            speakObj.speakTextAsync("If you want to skip to the Reader ... Say Read for Blind Reader");
+          //  speakObj.speakTextAsync("If you want to Listen to Tutorial ... Say Read for Blind Tutorial ");
+          //  speakObj.speakTextAsync("If you want to skip to the Reader ... Say Read for Blind Reader");
             Thread.Sleep(100);
             state = State.Command;
             while (state!=State.Normal)
@@ -264,13 +264,16 @@ namespace Read_for_blind
         {
             if (speakObj != null)
             {
+                if(speakObj.speechSynt.State==System.Speech.Synthesis.SynthesizerState.Speaking)
                 speakObj.speechSynt.Pause();
                 speakObj.speechSynt.Dispose();
             }
             if (_cameraThread != null && _cameraThread.IsAlive)
                 _cameraThread.Abort();
+            _cameraThread.Join();
             if (_voiceThread != null && _voiceThread.IsAlive)
                 _voiceThread.Abort();
+            _voiceThread.Join();
             if (_restart != null && _restart.IsAlive)
                 _restart.Abort();
             if (_mainThread != null && _mainThread.IsAlive)
@@ -282,7 +285,7 @@ namespace Read_for_blind
 
         private void CaptureCameraCallback()
         {
-
+            
 
             using (cap = CvCapture.FromCamera(CaptureDevice.Any, 0))
             {
@@ -467,7 +470,8 @@ namespace Read_for_blind
                                  speechThread.Start();
 
                              }
-
+                             if (DIRECTION == 0)
+                                 break;
                             #endregion
                             
                         }
@@ -1080,7 +1084,7 @@ namespace Read_for_blind
         private void processTesseract(String filename)
         {
             
- 
+ /*
             speakObj.speakText("Please Wait...While Image is processed...");
             tesseract.getTextFile(filename);
             speakObj.speakText("Process Done");
@@ -1088,7 +1092,7 @@ namespace Read_for_blind
             speakObj.speakFile();
             speakObj.speakText("Reading Done");
             speakObj.speakText("Would You Like To Read Another Text...");
-            speakObj.speakText("Say Read For Blind Yes ... Or ... Read For Blind No for Exit");
+            speakObj.speakText("Say Read For Blind Yes ... Or ... Read For Blind No for Exit");*/
             state = State.Command;
 
             while (state != State.Normal)
@@ -1110,10 +1114,14 @@ namespace Read_for_blind
             {
 
                 Dispatcher.BeginInvoke((Action)(() =>
+
                 {
-                    this.OnClosing(null);
-                }
-                   ));
+
+                    OnClosed(null);
+                }));
+             
+            
+               
            
             }
 
